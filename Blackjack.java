@@ -3,46 +3,148 @@ import java.util.*;
 public class Blackjack{
 	
 	private static Scanner scanner = new Scanner(System.in);
+	private static Timer timer = new Timer();
+	private static int interval = 10;
 	
 	public static void main(String args[]){
-		
-		/*
-		KaartenMaker dek = new KaartenMaker();
-		
-		dek.printKaarten();
-		*/
-		
-		/*
-		SpeelTafel tafel = new SpeelTafel();
-		
-		tafel.plaatsKaartOpTafel();
-		tafel.plaatsKaartOpTafel();
-		tafel.plaatsKaartOpTafel();
-		
-		System.out.println(tafel.totaalWaardeKaartenOpTafel());
-		*/
-		
+		int totaalWaarde = 0;
 		boolean play = true;
 		while(play){
-			System.out.println("k - om een kaart te krijgen\np - om te passen\nq - om te stoppen");
+			SpeelTafel blackJack = new SpeelTafel();
+			
+			// welkom speler
+			System.out.println("Welkom bij blackjack!");
+			
+			// voeg speler toe
+			System.out.println("Wat is je naam?");
 			String input = scanner.nextLine();
-			
-			if(input.equalsIgnoreCase("q")){
-				play = false;
+			Speler speler = blackJack.voegSpelerToe(input);
+			// geef opties
+			System.out.println("\n===============================");
+			System.out.println("Welkom " + speler.getNaam() + ".\nDruk enter om je kaarten te ontvangen");
+			System.out.println("===============================");
+			input = scanner.nextLine();
+			int result = play(blackJack, speler, "Totaal waarde: ", true);
+			//System.out.println(result + " is de waarde van result");
+			if(result == 21){
+				System.out.println("Je hebt gewonnen!\nJouw kaarten zijn in totaal " + result + " waard");
+				play = playAgain();
+				if(!play){
+					System.exit(0);
+				}
+			}else if(result > 21){
+				System.out.println("Je hebt verloren!\nJouw kaarten zijn in totaal " + result + " waard");
+				play = playAgain();
+				if(!play){
+					System.exit(0);
+				}
+			}else{
+				System.out.println("Tot ziens!");
+				System.exit(0);
 			}
-			
-			
-			
+		}
+	}
+	
+	public static boolean playAgain(){
+		System.out.println("\n===============================");
+		System.out.println("Play again? j/n");
+		System.out.println("===============================");
+		String input = scanner.nextLine();
+		if(input.equalsIgnoreCase("j")){
+			return true;
+		}else{
+			//System.out.println(input + " is the input");
+			return false;
+		}
+	}
+	
+	public static int play(SpeelTafel tafel, Speler speler, String message, boolean nieuwSpel){
+		//System.out.println("Restart");
+		// geef speler zijn kaarten
+		if(nieuwSpel){
+			Kaart kaart1 = tafel.geefKaart(), kaart2 = tafel.geefKaart();
+			if(kaart1 != null && kaart2 != null){
+				System.out.println("===============================");
+				speler.ontvangKaart(kaart1, kaart2);
+			}else{
+				System.out.println("\n===============================");
+				System.out.println("De kaarten worden opnieuw geschud.\nDruk enter om verder te gaan.");
+				System.out.println("===============================");
+				tafel.pakNieuweDek();
+				speler.ontvangKaart(tafel.geefKaart(), tafel.geefKaart());
+			}
+			speler.berekenKaartenWaarde(tafel.getTotaalWaardeOpTafel());
+			System.out.println("Totaal: " + speler.getWaardeInHand());
+			//System.out.println("\nEr zitten nog " + tafel.getAantalKaarten() + " kaarten in het dek");
 		}
 		
-		
+		System.out.println("\n============Opties=============");
+		System.out.println("k - om een kaart te krijgen\np - om te passen\nq - om te stoppen");
+		System.out.println("===============================");
+		System.out.println("Je hebt " + interval + " seconden om een keuze te maken");
+		startTimer();
+		System.out.println();
+		String input = scanner.nextLine();
+		int totaalWaarde = 0;
+		if(input.equalsIgnoreCase("k")){
+			stopTimer();
+			System.out.println("\n===============================");
+			System.out.println("Er wordt een nieuwe kaart gepakt.\nDruk enter om verder te gaan");
+			System.out.println("===============================");
+			input = scanner.nextLine();
+			// kaart op tafel
+			tafel.plaatsKaartOpTafel();
+			System.out.println("Totaal: " + tafel.getTotaalWaardeOpTafel());
+			speler.toonHuidigeKaarten();
+			System.out.println("Totaal: " + speler.getWaardeInHand());
+			
+			totaalWaarde += speler.getWaardeInHand() + tafel.getTotaalWaardeOpTafel();
+			System.out.println("\n" + message + totaalWaarde);
+			if(totaalWaarde < 21){
+				//System.out.println("repeat");
+				play(tafel, speler, message, false);
+			}
+		}else if(input.equalsIgnoreCase("p")){
+			stopTimer();
+			tafel.resetTafel();
+			System.out.println("\n===============================");
+			System.out.println("Er worden nieuwe kaarten voor je gepakt.\nDruk enter om verder te gaan");
+			System.out.println("===============================");
+			input = scanner.nextLine();
+			play(tafel, speler, message, true);
+		}
+		return speler.getWaardeInHand() + tafel.getTotaalWaardeOpTafel();
 	}
+	
+	public static void startTimer(){
+        int delay = 1000;
+        int period = 1000;
+        timer = new Timer();
+		interval = 10;
+        timer.scheduleAtFixedRate(new TimerTask() {
+
+            public void run() {
+				System.out.print(interval-- + " ");
+                if (interval == 0) {
+                    timer.cancel();
+					System.out.println("\nUw tijd is op! Tot ziens!");
+                    System.exit(0);
+                }
+            }
+        }, delay, period);
+    }
+
+    public static void stopTimer(){
+			interval = 10;
+            timer.cancel();
+    }
 	
 }
 
 class Speler{
 	
 	private String naam;
+	private int waardeInHand;
 	private List<Kaart> kaartInHand = new ArrayList<>();
 	
 	
@@ -56,13 +158,14 @@ class Speler{
 			kaartInHand.add(kaart1);
 			kaartInHand.add(kaart2);
 		}
+		toonHuidigeKaarten();
 	}
 	
 	private void verwijderKaarten(){
 		kaartInHand.clear();
 	}
 	
-	public int waardeHuidigeKaarten(int totalWaarde){
+	public void berekenKaartenWaarde(int totalWaarde){
 		int eersteWaarde = 0, tweedeWaarde = 0;
 		
 		if(!kaartInHand.isEmpty()){
@@ -77,14 +180,23 @@ class Speler{
 				tweedeWaarde = kaartInHand.get(1).bepaalDeWaardeVanAas(totalWaarde);
 			}
 		}
-		return eersteWaarde + tweedeWaarde;
+		waardeInHand = eersteWaarde + tweedeWaarde;
 	}
 	
 	public void toonHuidigeKaarten(){
-		System.out.println("Jouw kaarten:");
+		System.out.println("\nJouw kaarten");
 		for(Kaart kaart : kaartInHand){
 			System.out.print(kaart + " ");
 		}
+		System.out.println();
+	}
+	
+	public int getWaardeInHand(){
+		return waardeInHand;
+	}
+	
+	public String getNaam(){
+		return this.naam;
 	}
 	
 }
@@ -93,11 +205,11 @@ class SpeelTafel{
 	
 	private Kaart[] kaartenDek;
 	private List<Kaart> kaartenOpTafel = new ArrayList<>();
-	private List<Speler> aantalSpeler = new ArrayList<>();
+	private Speler speler;
 	
 	private int aantalKaarten = 52;
-	private int huidigeLocatieInDek = 0;
-	private int totaalWaardeOpTafel = 0;
+	private int huidigeLocatieInDek;
+	private int totaalWaardeOpTafel;
 	
 	public SpeelTafel(){
 		kaartenDek = new KaartenMaker().getKaartenDek();
@@ -106,17 +218,21 @@ class SpeelTafel{
 	public void pakNieuweDek(){
 		kaartenDek = new KaartenMaker().getKaartenDek();
 		aantalKaarten = kaartenDek.length;
+		huidigeLocatieInDek = 0;
 		//System.out.println("Aantal kaarten zijn: " + aantalKaarten);
 	}
 	
-	public void voegSpelerToe(Speler speler){
-		aantalSpeler.add(speler);
+	public Speler voegSpelerToe(String spelerNaam){
+		speler = new Speler(spelerNaam);
+		return speler;
 	}
 	
 	public boolean plaatsKaartOpTafel(){
+		totaalWaardeOpTafel = 0;
 		if(aantalKaarten > 0){
 			aantalKaarten--;
 			kaartenOpTafel.add(kaartenDek[huidigeLocatieInDek++]);
+			totaalWaardeKaartenOpTafel();
 			toonAlleKaartenOpTafel();
 			return true;
 		}else{
@@ -125,7 +241,20 @@ class SpeelTafel{
 		}
 	}
 	
-	public int totaalWaardeKaartenOpTafel(){
+	public Kaart geefKaart(){
+		if(aantalKaarten > 0){
+			aantalKaarten--;
+			return kaartenDek[huidigeLocatieInDek++];
+		}else{
+			return null;
+		}
+	}
+	
+	public void resetTafel(){
+		kaartenOpTafel.clear();
+	}
+	
+	private void totaalWaardeKaartenOpTafel(){
 		for(Kaart kaart : kaartenOpTafel){
 			if(!kaart.isEenAas()){
 				totaalWaardeOpTafel += kaart.geefDeWaarde();
@@ -133,36 +262,36 @@ class SpeelTafel{
 				totaalWaardeOpTafel += kaart.bepaalDeWaardeVanAas(totaalWaardeOpTafel);
 			}
 		}
-		return totaalWaardeOpTafel;
 	}
 	
 	private void toonAlleKaartenOpTafel(){
 		if(!kaartenOpTafel.isEmpty()){
-			System.out.println("Kaarten in het spel");
+			System.out.println("Kaarten op tafel");
 			for(Kaart kaart : kaartenOpTafel){
-			System.out.print(kaart + " ");
+				if(!kaart.isEenAas()){
+					System.out.println(kaart + " waarde: " + kaart.geefDeWaarde());
+				}else{
+					System.out.println(kaart + " waarde: " + kaart.bepaalDeWaardeVanAas(totaalWaardeOpTafel));
+				}
 			}
 		}else{
 			System.out.println("Er zijn geen kaarten op tafel");
 		}
-		System.out.println();
 	}
 	
-	public Kaart geefKaart(){
-		if(aantalKaarten > 0){
-			aantalKaarten--;
-			return kaartenDek[huidigeLocatieInDek++];
-		}else{
-			System.out.println("Je hebt geen kaarten meer in het dek");
-			return null;
-		}
+	public int getAantalKaarten(){
+		return aantalKaarten;
 	}
 	
 	public List getKaartenOpTafel(){
 		return kaartenOpTafel;
 	}
 	
-	public int totaalWaardeOpTafel(){
+	public Speler getSpeler(){
+		return speler;
+	}
+	
+	public int getTotaalWaardeOpTafel(){
 		return totaalWaardeOpTafel;
 	}
 	
